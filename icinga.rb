@@ -8,28 +8,55 @@
 
 class IcingaPlugin < Plugin
 
+  Config.register Config::ArrayValue.new('icinga.channels',
+    :default => [],
+    :desc => "List of channels to announce icinga messages to")
+
+  Config.register Config::StringValue.new('icinga.pipe',
+    :default => '',
+    :desc => "pipe file to read messages from")
+
+  Config.register Config::StringValue.new('icinga.commandfile',
+    :default => '/var/lib/icinga/rw/icinga.cmd',
+    :desc => "comand file to pass icinga comands to")
+
+  def initialize
+    super
+    @channels = @bot.config['icinga.channels']
+    @pipefile = @bot.config['icinga.pipe']
+    @commandfile = @bot.config['icinga.commandfile']
+    if @channels.empty? or @pipefile.empty?
+      error "icinga.pipe or icinga.channels config is unset!"
+    else
+      log "Starting icinga and announcing on channels #{@channels.join(', ')}"
+      icinga()
+    end
+  end
+
   def help(plugin, topic="")
     return 	"icinga notification plugin, \n" +
-		"icinga [channel] - starts icinga reporting on channel, \n" +
 		"ack host [hostname] [comment] - acknoladges a host problem, \n" +
 		"ack service [hostname] [service] [comment] - acknowledges a service problem, "
   end
 
-  def icinga(m, params)
+
+  def icinga()
     begin
-      input = open("/var/lib/icinga/rw/CSLIBBot", "r+")
-      m.reply "starting icinga on #{params[:channel]}"
+      input = open(@pipefile, "r+")
+#      m.reply "starting icinga on #{params[:channel]}"
 #      m.reply "#{m.channel} #{params[:channel]}"
 
       Thread.start {
         while( line = input.gets )
 #          m.reply "\x0304 #{line}"
-	  @bot.say params[:channel], line
+          @channels.each do |chan|
+	    @bot.say chan.strip, line
+	  end
 #  	  puts "#{line}"
         end
       }
     rescue
-      m.reply "error in icinga plugin"
+      log "error in icinga plugin"
     end
   end
 
@@ -65,7 +92,6 @@ end
 
 Icinga = IcingaPlugin.new
 
-Icinga.map 'icinga :channel'
 Icinga.map 'ack host :host *string', :action => 'acknowledgehost'
 Icinga.map 'ack service :host :service *string', :action => 'acknowledgeservice'
 
