@@ -33,6 +33,10 @@ class IcingaPlugin < Plugin
     end
   end
 
+  def cleanup
+    Thread.kill(@pipereader)
+  end
+
   def help(plugin, topic="")
     return 	"icinga notification plugin, \n" +
 		"ack host [hostname] [comment] - acknoladges a host problem, \n" +
@@ -46,7 +50,7 @@ class IcingaPlugin < Plugin
 #      m.reply "starting icinga on #{params[:channel]}"
 #      m.reply "#{m.channel} #{params[:channel]}"
 
-      Thread.start {
+      @pipereader = Thread.start {
         while( line = input.gets )
 #          m.reply "\x0304 #{line}"
           @channels.each do |chan|

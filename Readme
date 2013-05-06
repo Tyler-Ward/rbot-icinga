@@ -1,0 +1,3 @@
+This is the Icinga plug-in for the rbot irc bot.
+
+The plug-in allows the bot to read from a pipe containing problem or recovery alerts, it also allows users to acknowledge problems and services from IRC
